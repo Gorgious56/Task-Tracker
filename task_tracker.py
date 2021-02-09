@@ -118,7 +118,7 @@ class TaskTrackerTasks(PropertyGroup):
     time_childs: FloatProperty(min=0, precision=0, subtype='TIME', unit='TIME', get=get_child_times)
     time_total: FloatProperty(min=0, precision=0, subtype='TIME', unit='TIME', get=lambda self: self.time + self.time_childs)
     is_tracking: BoolProperty(description="Track this task", update=update_tracking)
-    builtin: BoolProperty(default=False)
+#    builtin: BoolProperty(default=False)
 
 
 class TaskTrackerProps(PropertyGroup):
@@ -126,7 +126,7 @@ class TaskTrackerProps(PropertyGroup):
     global_tracking: BoolProperty()
     global_index: IntProperty(default=1)
     edit_times: BoolProperty()
-    show_builtins: BoolProperty(default=False, update=update_builtins)
+#    show_builtins: BoolProperty(default=False, update=update_builtins)
 
 
 class TASK_TRACKER_OT_Actions(Operator):
@@ -249,6 +249,9 @@ class TASK_TRACKER_OT_Track(bpy.types.Operator):
             for task in world.tt_tasks:
                 task.time += delta_time * int(task.is_tracking) / 60
             self._last_time = cur_time
+#            for area in bpy.context.screen.areas: # iterate through areas in current screen
+#                if area.type == 'VIEW_3D':
+#                    area.tag_redraw()
             if context.area:
                 context.area.tag_redraw()
         
@@ -275,29 +278,29 @@ class TASK_TRACKER_UL_items(UIList):
     def draw_item(self, context, layout, data, task, icon, active_data, active_propname):
         
         props = context.scene.world.tt_props
-        if props.show_builtins or not task.builtin:
-            split = layout.split(factor=0.5)
-            time = task.time_total * 60
-            strtime = ""
-            days = int(time // 86400)
-            if time > 86399:
-                strtime += str(days) + "d "
-            hours = int((time % 86400) // 3600)
-            if time > 3600:
-                strtime += ("0" if hours < 10 else "") + str(hours) + "h "
-            minutes = int(time % 3600 // 60)
-            if time > 60:
-                strtime += ("0" if minutes < 10 else "") + str(minutes) + '" '
-            seconds = int(time % 60)
-            strtime += ("0" if seconds < 10 else "") + str(seconds) + "'"
-            
-            row = split.row()
-            parent_id = task.parent
-            if task.parent >= 0:
-                for t in context.world.tt_tasks:
-                    if t.id == parent_id:
-                        row.label(text=t.name, icon='FILE_PARENT')
-                        break
+#        if props.show_builtins or not task.builtin:
+        split = layout.split(factor=0.5)
+        time = task.time_total * 60
+        strtime = ""
+        days = int(time // 86400)
+        if time > 86399:
+            strtime += str(days) + "d "
+        hours = int((time % 86400) // 3600)
+        if time > 3600:
+            strtime += ("0" if hours < 10 else "") + str(hours) + "h "
+        minutes = int(time % 3600 // 60)
+        if time > 60:
+            strtime += ("0" if minutes < 10 else "") + str(minutes) + '" '
+        seconds = int(time % 60)
+        strtime += ("0" if seconds < 10 else "") + str(seconds) + "'"
+        
+        row = split.row()
+        parent_id = task.parent
+        if task.parent >= 0:
+            for t in context.world.tt_tasks:
+                if t.id == parent_id:
+                    row.label(text=t.name, icon='FILE_PARENT')
+                    break
 
 #            if task.builtin:
 #                row.prop(bpy.data.workspaces[task.name], "name", text="" , emboss=False)
