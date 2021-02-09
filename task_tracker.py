@@ -8,7 +8,6 @@ bl_info = {
 }
 
 import atexit
-import functools
 from time import time
 
 import bpy
