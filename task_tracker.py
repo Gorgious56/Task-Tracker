@@ -68,7 +68,7 @@ def update_tracking(self, context):
                 t.is_tracking = False
 
 def update_task_tracker_index(self, context):
-    tasks = context.world.tt_tasks
+    tasks = context.scene.world.tt_tasks
     index = self.index
     if not tasks:
         return
@@ -297,7 +297,7 @@ class TASK_TRACKER_UL_items(UIList):
         row = split.row()
         parent_id = task.parent
         if task.parent >= 0:
-            for t in context.world.tt_tasks:
+            for t in context.scene.world.tt_tasks:
                 if t.id == parent_id:
                     row.label(text=t.name, icon='FILE_PARENT')
                     break
@@ -305,63 +305,79 @@ class TASK_TRACKER_UL_items(UIList):
 #            if task.builtin:
 #                row.prop(bpy.data.workspaces[task.name], "name", text="" , emboss=False)
 #            else:
-            row.prop(task, "name", text="", emboss=False)
-            
-            if props.edit_times:
-                split.prop(task, "time", text="Minutes:", emboss=False)            
-            else:
-                split.label(text=strtime)
-            split = split.split()
-            split.prop(task, "is_tracking", text="", toggle=True, icon='TIME')
+        row.prop(task, "name", text="", emboss=False)
+        
+        if props.edit_times:
+            split.prop(task, "time", text="Minutes:", emboss=False)            
+        else:
+            split.label(text=strtime)
+        split = split.split()
+        split.prop(task, "is_tracking", text="", toggle=True, icon='TIME')
 #            split.enabled = not task.builtin
 
 
-class TaskTrackerPanel(Panel):
+def draw_panel(self, context):    
+    layout = self.layout
+    world = context.scene.world
+    props = world.tt_props
+    tasks = world.tt_tasks
+
+    rows = 2
+    row = layout.row()
+    row.template_list(
+        "TASK_TRACKER_UL_items", 
+        "custom_def_list", 
+        world, 
+        "tt_tasks", 
+        props, 
+        "index", 
+        rows=rows)
+
+    col = row.column(align=True)
+    col.operator("custom.list_action", icon='ADD', text="").action = 'ADD'
+    col.operator("custom.list_action", icon='REMOVE', text="").action = 'REMOVE'
+    col.separator()
+    col.prop(world.tt_props, "edit_times", icon='GREASEPENCIL', icon_only=True, toggle=True)
+    
+    index = props.index
+    depress = (tasks[index].parent >= 0) if 0 <= index < len(tasks) else False
+    sub_col = col.column(align=True)
+    sub_col.operator("custom.list_action", icon='FILE_PARENT', text="", depress=depress).action = 'PARENT'
+    sub_col.enabled = index > 0
+        
+#        col.prop(world.tt_props, "show_builtins", icon='FILE_BLEND', icon_only=True, toggle=True)
+    col.separator()
+    col.operator("custom.list_action", icon='TRIA_UP', text="").action = 'UP'
+    col.operator("custom.list_action", icon='TRIA_DOWN', text="").action = 'DOWN'
+
+    row = layout.row()
+    col = row.column(align=True)
+    row = col.row(align=True)
+    row.operator(TASK_TRACKER_OT_ClearList.bl_idname, icon="X")
+
+
+class TaskTrackerWorldPanel(Panel):
     """Creates a Panel in the World context of the properties editor"""
     bl_label = "Task Tracker"
-    bl_idname = "TASK_TRACKER_PT_layout"
+    bl_idname = "TASK_TRACKER_WORLD_PT_layout"
     bl_space_type = 'PROPERTIES'
     bl_region_type = 'WINDOW'
     bl_context = "world"    
 
     def draw(self, context):
-        layout = self.layout
-        world = context.scene.world
-        props = world.tt_props
-        tasks = world.tt_tasks
+        draw_panel(self, context)
 
-        rows = 2
-        row = layout.row()
-        row.template_list(
-            "TASK_TRACKER_UL_items", 
-            "custom_def_list", 
-            world, 
-            "tt_tasks", 
-            props, 
-            "index", 
-            rows=rows)
 
-        col = row.column(align=True)
-        col.operator("custom.list_action", icon='ADD', text="").action = 'ADD'
-        col.operator("custom.list_action", icon='REMOVE', text="").action = 'REMOVE'
-        col.separator()
-        col.prop(world.tt_props, "edit_times", icon='GREASEPENCIL', icon_only=True, toggle=True)
-        
-        index = props.index
-        depress = (tasks[index].parent >= 0) if 0 <= index < len(tasks) else False
-        sub_col = col.column(align=True)
-        sub_col.operator("custom.list_action", icon='FILE_PARENT', text="", depress=depress).action = 'PARENT'
-        sub_col.enabled = index > 0
-            
-#        col.prop(world.tt_props, "show_builtins", icon='FILE_BLEND', icon_only=True, toggle=True)
-        col.separator()
-        col.operator("custom.list_action", icon='TRIA_UP', text="").action = 'UP'
-        col.operator("custom.list_action", icon='TRIA_DOWN', text="").action = 'DOWN'
+class TaskTracker3DViewPanel(Panel):
+    """Task Tracker Panel in the 3d View"""
+    bl_idname = "TASK_TRACKER_3DVIEW_PT_layout"
+    bl_label = "Task Tracker"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+    bl_category = 'TT'
 
-        row = layout.row()
-        col = row.column(align=True)
-        row = col.row(align=True)
-        row.operator(TASK_TRACKER_OT_ClearList.bl_idname, icon="X")
+    def draw(self, context):
+        draw_panel(self, context)
 
 
 classes = (
@@ -369,7 +385,8 @@ classes = (
     TASK_TRACKER_OT_Actions,
     TASK_TRACKER_OT_ClearList,
     TASK_TRACKER_UL_items,
-    TaskTrackerPanel,
+    TaskTrackerWorldPanel,
+    TaskTracker3DViewPanel,
     TaskTrackerProps,
     TaskChilds,
     TaskTrackerTasks,
